@@ -1,6 +1,6 @@
 # NanoMatch — Ultra-Low Latency Order Matching Engine
 
-> FEC · IIT Guwahati · DIY '26 · PS 03/06 · Quant - Systems
+> FEC · IIT Guwahati ·
 
 A fully functional Limit Order Book (LOB) built for sub-microsecond
 order matching. Designed with hardware sympathy: cache-aligned structs,

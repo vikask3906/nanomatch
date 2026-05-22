@@ -10,6 +10,13 @@
 #include <set>
 #include <cstdint>
 #include <functional>
+#include <vector>
+
+struct LevelInfo {
+    uint64_t price = 0;
+    uint64_t qty   = 0;
+    uint32_t count = 0;
+};
 
 class OrderBook {
 public:
@@ -38,6 +45,10 @@ public:
     uint64_t total_trades()  const { return trade_count_; }
     uint64_t total_orders()  const { return order_count_; }
     uint64_t total_cancels() const { return cancel_count_; }
+
+    // Depth snapshot for the visualizer — top N price levels each side
+    std::vector<LevelInfo> bid_levels(int n = 10) const;
+    std::vector<LevelInfo> ask_levels(int n = 10) const;
 
     EnginePool& pool() { return pool_; }
 

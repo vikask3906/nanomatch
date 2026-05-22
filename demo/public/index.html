@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NanoMatch — Live Order Book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header id="header">
+    <div id="logo">
+      <span class="logo-nm">NANO</span><span class="logo-match">MATCH</span>
+      <span class="logo-tag">HFT Matching Engine</span>
+    </div>
+    <div id="metrics-bar">
+      <div class="metric-card" id="mc-orders">
+        <span class="metric-label">ORDERS PROCESSED</span>
+        <span class="metric-value" id="m-orders">—</span>
+      </div>
+      <div class="metric-card" id="mc-trades">
+        <span class="metric-label">TRADES MATCHED</span>
+        <span class="metric-value" id="m-trades">—</span>
+      </div>
+      <div class="metric-card" id="mc-tp">
+        <span class="metric-label">THROUGHPUT</span>
+        <span class="metric-value" id="m-tp">—</span>
+        <span class="metric-unit">ord/sec</span>
+      </div>
+      <div class="metric-card" id="mc-spread">
+        <span class="metric-label">SPREAD</span>
+        <span class="metric-value" id="m-spread">—</span>
+        <span class="metric-unit">$</span>
+      </div>
+      <div id="ws-status" class="status-dot connecting" title="WebSocket Status"></div>
+    </div>
+  </header>
+
+  <!-- Main grid -->
+  <main id="main-grid">
+
+    <!-- Asks (top of book, sells) -->
+    <section id="book-panel" class="glass-panel">
+      <div class="panel-header">
+        <span class="panel-title">LIMIT ORDER BOOK</span>
+        <span class="panel-sub">AAPL · Price-Time Priority</span>
+      </div>
+
+      <div id="book-inner">
+        <!-- Asks -->
+        <div id="asks-header" class="book-col-header">
+          <span>PRICE</span><span>QTY</span><span>ORDERS</span>
+        </div>
+        <div id="asks-container"></div>
+
+        <!-- Spread row -->
+        <div id="spread-row">
+          <div id="bid-price-lbl" class="mid-label">BID <span id="best-bid">—</span></div>
+          <div id="spread-lbl">SPREAD <span id="spread-val">—</span></div>
+          <div id="ask-price-lbl" class="mid-label">ASK <span id="best-ask">—</span></div>
+        </div>
+
+        <!-- Bids -->
+        <div id="bids-header" class="book-col-header">
+          <span>PRICE</span><span>QTY</span><span>ORDERS</span>
+        </div>
+        <div id="bids-container"></div>
+      </div>
+    </section>
+
+    <!-- Trade tape -->
+    <section id="tape-panel" class="glass-panel">
+      <div class="panel-header">
+        <span class="panel-title">TRADE TAPE</span>
+        <span class="panel-sub" id="trade-count-lbl">0 executions</span>
+      </div>
+      <div id="tape-header" class="book-col-header">
+        <span>PRICE</span><span>QTY</span><span>SIDE</span>
+      </div>
+      <div id="tape-container"></div>
+    </section>
+
+  </main>
+
+  <!-- Status bar -->
+  <footer id="status-bar">
+    <span id="engine-status">⚡ Awaiting engine connection...</span>
+    <span id="footer-tech">C++17 · mmap ITCH · SPSC Ring Buffer · Custom Memory Pool</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -220,3 +220,25 @@ uint64_t OrderBook::ask_qty_at(uint64_t price) const {
     if (price < MIN_PRICE || price > MAX_PRICE) return 0;
     return asks_[price - MIN_PRICE].total_qty;
 }
+
+std::vector<LevelInfo> OrderBook::bid_levels(int n) const {
+    std::vector<LevelInfo> result;
+    result.reserve(n);
+    for (auto it = active_bids_.rbegin(); it != active_bids_.rend() && (int)result.size() < n; ++it) {
+        const PriceLevel& lvl = bids_[*it - MIN_PRICE];
+        if (!lvl.empty())
+            result.push_back({lvl.price, lvl.total_qty, lvl.order_count});
+    }
+    return result;
+}
+
+std::vector<LevelInfo> OrderBook::ask_levels(int n) const {
+    std::vector<LevelInfo> result;
+    result.reserve(n);
+    for (auto it = active_asks_.begin(); it != active_asks_.end() && (int)result.size() < n; ++it) {
+        const PriceLevel& lvl = asks_[*it - MIN_PRICE];
+        if (!lvl.empty())
+            result.push_back({lvl.price, lvl.total_qty, lvl.order_count});
+    }
+    return result;
+}

@@ -41,6 +41,10 @@ target_link_libraries(nanomatch_simple PRIVATE engine_lib)
 add_executable(nanomatch_itch src/main_itch.cpp)
 target_link_libraries(nanomatch_itch PRIVATE engine_lib)
 
+# ── Demo binary (JSON stdout → web visualizer) ───────────────────────────────
+add_executable(nanomatch_demo src/main_demo.cpp)
+target_link_libraries(nanomatch_demo PRIVATE engine_lib)
+
 # ── Standalone tests (no external deps) ───────────────────────────────────────
 add_executable(tests_standalone tests/test_matching_standalone.cpp)
 target_link_libraries(tests_standalone PRIVATE engine_lib)
