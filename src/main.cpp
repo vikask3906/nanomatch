@@ -6,11 +6,16 @@
 #include <chrono>
 #include <memory>
 
+#if defined(_MSC_VER)
+#include <intrin.h>
+static inline uint64_t rdtsc() { return __rdtsc(); }
+#else
 static inline uint64_t rdtsc() {
     uint32_t lo, hi;
     __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
     return (static_cast<uint64_t>(hi) << 32) | lo;
 }
+#endif
 
 int main(int argc, char* argv[]) {
     const char* data_path  = argc > 1 ? argv[1] : "data/orders_1m.csv";

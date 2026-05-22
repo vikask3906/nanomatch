@@ -63,9 +63,9 @@ def gen_orders(n: int, out_path: str, seed: int = 42):
                     writer.writerow([order_id, 'C', '', target, 0, ts])
                     order_id += 1
 
-    print(f"Generated {n:,} orders → {out_path}")
+    print(f"Generated {n:,} orders -> {out_path}")
     print(f"  Last order_id : {order_id - 1}")
-    print(f"  Price range   : ${(BASE_PRICE - TICK_RANGE)/100:.2f} – "
+    print(f"  Price range   : ${(BASE_PRICE - TICK_RANGE)/100:.2f} - "
           f"${(BASE_PRICE + TICK_RANGE)/100:.2f}")
 
 

@@ -1,4 +1,7 @@
 #pragma once
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
 #include "order.hpp"
 #include "price_level.hpp"
 #include "memory_pool.hpp"
@@ -71,9 +74,13 @@ private:
         return asks_[price - MIN_PRICE];
     }
 
+#if defined(_MSC_VER)
+    static inline uint64_t now_tsc() { return __rdtsc(); }
+#else
     static inline uint64_t now_tsc() {
         uint32_t lo, hi;
         __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
         return (static_cast<uint64_t>(hi) << 32) | lo;
     }
+#endif
 };

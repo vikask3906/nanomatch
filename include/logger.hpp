@@ -5,6 +5,10 @@
 #include <atomic>
 #include <cstdio>
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
 #ifdef __linux__
 #include <pthread.h>
 #include <sched.h>
@@ -53,8 +57,10 @@ private:
                 logged_.fetch_add(1, std::memory_order_relaxed);
             }
             // Busy-spin — no sleep, no condition_variable, no kernel call
-            // __builtin_ia32_pause() reduces power consumption during spin
-#if defined(__x86_64__) || defined(__i386__)
+            // pause instruction reduces power consumption during spin
+#if defined(_MSC_VER)
+            _mm_pause();
+#elif defined(__x86_64__) || defined(__i386__)
             __builtin_ia32_pause();
 #endif
         }

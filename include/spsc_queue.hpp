@@ -4,6 +4,13 @@
 #include <cstdint>
 #include "order.hpp"
 
+// Portable branch hint
+#if defined(_MSC_VER)
+#define SPSC_UNLIKELY(x) (x)
+#else
+#define SPSC_UNLIKELY(x) __builtin_expect((x), 0)
+#endif
+
 // Single Producer Single Consumer ring buffer
 // Producer = matching engine thread
 // Consumer = logger thread
@@ -32,7 +39,7 @@ public:
         const uint64_t next_h = (h + 1) & MASK;
 
         // Full check — acquire ensures we see consumer's latest tail update
-        if (__builtin_expect(next_h == tail_.val.load(std::memory_order_acquire), 0))
+        if (SPSC_UNLIKELY(next_h == tail_.val.load(std::memory_order_acquire)))
             return false;  // queue full
 
         buffer_[h] = item;

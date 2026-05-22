@@ -2,6 +2,13 @@
 #include <algorithm>
 #include <cstring>
 
+// Portable branch prediction hint
+#if defined(_MSC_VER)
+#define UNLIKELY(x) (x)
+#else
+#define UNLIKELY(x) __builtin_expect((x), 0)
+#endif
+
 OrderBook::OrderBook() {
     bids_ = new PriceLevel[LEVELS]();
     asks_ = new PriceLevel[LEVELS]();
@@ -21,7 +28,7 @@ OrderBook::~OrderBook() {
 
 void OrderBook::add_limit_order(uint64_t id, Side side,
                                  uint64_t price, uint64_t qty) {
-    if (__builtin_expect(price < MIN_PRICE || price > MAX_PRICE, 0)) return;
+    if (UNLIKELY(price < MIN_PRICE || price > MAX_PRICE)) return;
     ++order_count_;
     Order* o    = pool_.alloc();
     o->order_id = id;
