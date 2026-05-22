@@ -37,6 +37,10 @@ endif()
 add_executable(nanomatch_simple src/main_simple.cpp)
 target_link_libraries(nanomatch_simple PRIVATE engine_lib)
 
+# ── ITCH binary (mmap ITCH parser) ───────────────────────────────────────────
+add_executable(nanomatch_itch src/main_itch.cpp)
+target_link_libraries(nanomatch_itch PRIVATE engine_lib)
+
 # ── Standalone tests (no external deps) ───────────────────────────────────────
 add_executable(tests_standalone tests/test_matching_standalone.cpp)
 target_link_libraries(tests_standalone PRIVATE engine_lib)
