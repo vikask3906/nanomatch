@@ -1,10 +1,13 @@
 // Standalone tests — no external dependencies
 #include "order_book.hpp"
+#include "spsc_queue.hpp"
 #include <cstdio>
 #include <memory>
 #include <vector>
 #include <cassert>
 #include <functional>
+#include <thread>
+#include <atomic>
 
 struct TestResult { int passed=0, failed=0; };
 static TestResult g_result;
@@ -176,6 +179,86 @@ TEST(OutOfRangePrice_Ignored) {
     EXPECT_EQ(c.book->best_bid(), 0u);
 }
 
+// ── Lock-free SPSC trade queue ─────────────────────────────────────────────────
+// These exercise the lock-free ring buffer that the matching engine uses to
+// hand trades to the logger thread without locks or syscalls in the hot path.
+
+static Trade make_trade(uint64_t seq) {
+    return Trade{ /*buy_order_id*/ seq,
+                  /*sell_order_id*/ seq + 1,
+                  /*price*/ 10000 + (seq % 100),
+                  /*quantity*/ 1 + (seq % 50),
+                  /*timestamp*/ seq };
+}
+
+// Push then drain on one thread — proves FIFO ordering and that an empty
+// queue reports nothing left.
+TEST(SPSC_SingleThread_FIFO) {
+    auto q = std::make_unique<TradeQueue>();
+    constexpr uint64_t N = 10'000;
+
+    for (uint64_t i = 0; i < N; ++i)
+        EXPECT_TRUE(q->push(make_trade(i)));
+
+    for (uint64_t i = 0; i < N; ++i) {
+        auto t = q->pop();
+        EXPECT_TRUE(t.has_value());
+        EXPECT_EQ(t->buy_order_id, i);          // strict FIFO order
+        EXPECT_EQ(t->quantity, 1 + (i % 50));   // payload intact
+    }
+    EXPECT_FALSE(q->pop().has_value());         // fully drained
+    EXPECT_TRUE(q->empty());
+}
+
+// A full ring buffer must reject pushes (no overwrite), and free a slot on pop.
+// Usable capacity is N-1 because head==tail encodes "empty".
+TEST(SPSC_FullQueue_Backpressure) {
+    SPSCQueue<Trade, 4> q;                      // capacity = 3 usable slots
+    EXPECT_TRUE(q.push(make_trade(0)));
+    EXPECT_TRUE(q.push(make_trade(1)));
+    EXPECT_TRUE(q.push(make_trade(2)));
+    EXPECT_FALSE(q.push(make_trade(3)));        // full → rejected, not dropped silently
+
+    auto t = q.pop();                           // free one slot
+    EXPECT_TRUE(t.has_value());
+    EXPECT_EQ(t->buy_order_id, 0u);
+    EXPECT_TRUE(q.push(make_trade(3)));         // now there is room
+}
+
+// The real proof: a producer thread and a consumer thread run concurrently,
+// exactly like the engine + logger. Every trade must arrive exactly once, in
+// order, with no loss — relying solely on the queue's atomic acquire/release.
+TEST(SPSC_ConcurrentProducerConsumer) {
+    auto q = std::make_unique<TradeQueue>();
+    constexpr uint64_t N = 500'000;
+
+    std::vector<Trade> received;
+    received.reserve(N);
+
+    std::thread consumer([&] {
+        uint64_t got = 0;
+        while (got < N) {
+            auto t = q->pop();
+            if (t) { received.push_back(*t); ++got; }
+            // else: spin — queue momentarily empty
+        }
+    });
+
+    // Producer: push all N, spinning if the consumer hasn't drained yet.
+    for (uint64_t i = 0; i < N; ++i)
+        while (!q->push(make_trade(i)))
+            std::this_thread::yield();
+
+    consumer.join();
+
+    EXPECT_EQ((uint64_t)received.size(), N);    // none lost, none duplicated
+    bool ordered = true;
+    for (uint64_t i = 0; i < N; ++i)
+        if (received[i].buy_order_id != i) { ordered = false; break; }
+    EXPECT_TRUE(ordered);                        // FIFO preserved across threads
+    EXPECT_TRUE(q->empty());
+}
+
 int main() {
     printf("\n── NanoMatch Test Suite ────────────────────────────\n");
     RUN(FullFill);
@@ -193,6 +276,9 @@ int main() {
     RUN(CrossedBook_Resolves);
     RUN(LargeVolume_PoolRecycling);
     RUN(OutOfRangePrice_Ignored);
+    RUN(SPSC_SingleThread_FIFO);
+    RUN(SPSC_FullQueue_Backpressure);
+    RUN(SPSC_ConcurrentProducerConsumer);
     printf("────────────────────────────────────────────────────\n");
     printf("Results: %d passed, %d failed\n", g_result.passed, g_result.failed);
     return g_result.failed > 0 ? 1 : 0;

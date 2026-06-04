@@ -45,9 +45,12 @@ target_link_libraries(nanomatch_itch PRIVATE engine_lib)
 add_executable(nanomatch_demo src/main_demo.cpp)
 target_link_libraries(nanomatch_demo PRIVATE engine_lib)
 
-# ── Standalone tests (no external deps) ───────────────────────────────────────
+# ── Standalone tests (no external deps; uses std::thread for SPSC tests) ───────
 add_executable(tests_standalone tests/test_matching_standalone.cpp)
 target_link_libraries(tests_standalone PRIVATE engine_lib)
+if(NOT MSVC)
+  target_link_libraries(tests_standalone PRIVATE pthread)
+endif()
 enable_testing()
 add_test(NAME standalone_tests COMMAND tests_standalone)
 

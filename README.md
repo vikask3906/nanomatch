@@ -23,7 +23,7 @@ The project ships with a **real-time web visualizer** (Node.js + WebSocket) that
 - [How the Demo Works](#-how-the-demo-works)
 - [Architecture Decisions](#-architecture-decisions)
 - [Performance Results](#-performance-results)
-- [Test Suite](#-test-suite--1515-passing-)
+- [Test Suite](#-test-suite--1818-passing-)
 - [Linux Profiling](#-linux-profiling-flame-graphs--cache-analysis)
 - [Troubleshooting](#-troubleshooting)
 
@@ -123,9 +123,9 @@ g++ -std=c++17 -O3 -Iinclude src/order_book.cpp src/main_demo.cpp \
 g++ -std=c++17 -O3 -Iinclude src/order_book.cpp bench/bench_standalone.cpp \
     -o bench_standalone
 
-# Test suite (15 tests, no external dependencies)
-g++ -std=c++17 -O0 -g -Iinclude src/order_book.cpp \
-    tests/test_matching_standalone.cpp -o run_tests
+# Test suite (18 tests, no external dependencies; -lpthread for SPSC concurrency tests)
+g++ -std=c++17 -O2 -Iinclude src/order_book.cpp \
+    tests/test_matching_standalone.cpp -lpthread -o run_tests
 ```
 
 **CMake build (builds all targets at once):**
@@ -187,16 +187,16 @@ run_tests.exe      # Windows
 Expected output:
 
 ```
-NanoMatch Standalone Test Suite
-Running 15 tests...
-  [PASS] FullFill
-  [PASS] PartialFill_BuyLarger
-  [PASS] PartialFill_SellLarger
-  [PASS] PriceTimePriority
+── NanoMatch Test Suite ────────────────────────────
+  FullFill                                     PASS
+  PartialFill_BuyLarger                        PASS
   ...
-  [PASS] OutOfRangePrice_Ignored
-
-15 / 15 tests PASSED ✓
+  OutOfRangePrice_Ignored                      PASS
+  SPSC_SingleThread_FIFO                       PASS
+  SPSC_FullQueue_Backpressure                  PASS
+  SPSC_ConcurrentProducerConsumer              PASS
+────────────────────────────────────────────────────
+Results: 18 passed, 0 failed
 ```
 
 ### Step 5 — Run the Benchmark
@@ -263,7 +263,7 @@ nanomatch/
 │   └── bench_engine.cpp            # Google Benchmark version (optional)
 │
 ├── tests/
-│   ├── test_matching_standalone.cpp  # 15 tests, no external dependencies
+│   ├── test_matching_standalone.cpp  # 18 tests (incl. SPSC concurrency), no external deps
 │   └── test_matching.cpp             # GTest version (optional)
 │
 ├── data/
@@ -419,7 +419,7 @@ Run `./bench_standalone data/orders_500k.csv` to reproduce these numbers on your
 
 ---
 
-## ✅ Test Suite — 15/15 Passing ✓
+## ✅ Test Suite — 18/18 Passing ✓
 
 Run with `./run_tests` (or `run_tests.exe` on Windows).
 
@@ -440,6 +440,9 @@ Run with `./run_tests` (or `run_tests.exe` on Windows).
 | CrossedBook_Resolves | Incoming buy at 101 vs resting sell at 99 → matches at 99 |
 | LargeVolume_PoolRecycling | 100k alternating orders → pool recycles, 50k trades |
 | OutOfRangePrice_Ignored | Price = 0 → silently dropped |
+| SPSC_SingleThread_FIFO | Push 10k trades, drain → strict FIFO order, payload intact, empty after |
+| SPSC_FullQueue_Backpressure | Full ring buffer rejects push (no overwrite), frees slot on pop |
+| SPSC_ConcurrentProducerConsumer | **500k trades across 2 real threads** → zero loss, FIFO preserved via atomic acquire/release |
 
 ---
 
